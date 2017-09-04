@@ -11,6 +11,10 @@ import ARKit
 import CoreLocation
 import MapKit
 
+public protocol LocationProvider: class {
+    var currentLocation: CLLocation? { get }
+}
+
 public protocol SceneLocationViewDelegate: class {
     func sceneLocationViewDidAddSceneLocationEstimate(sceneLocationView: SceneLocationView, position: SCNVector3, location: CLLocation)
     func sceneLocationViewDidRemoveSceneLocationEstimate(sceneLocationView: SceneLocationView, position: SCNVector3, location: CLLocation)
@@ -48,9 +52,12 @@ public class SceneLocationView: ARSCNView, ARSCNViewDelegate {
     ///Not advisable to change this as the scene is ongoing.
     public var locationEstimateMethod: LocationEstimateMethod = .mostRelevantEstimate
     
-    let locationManager = LocationManager()
+//    let locationManager = LocationManager()
+    
     ///When set to true, displays an axes node at the start of the scene
     public var showAxesNode = false
+    
+    public weak var locationProvider: LocationProvider?
     
     private(set) var locationNodes = [LocationNode]()
     
@@ -93,7 +100,7 @@ public class SceneLocationView: ARSCNView, ARSCNViewDelegate {
     public override init(frame: CGRect, options: [String : Any]? = nil) {
         super.init(frame: frame, options: options)
         
-        locationManager.delegate = self
+//        locationManager.delegate = self
         
         delegate = self
         
@@ -115,8 +122,7 @@ public class SceneLocationView: ARSCNView, ARSCNViewDelegate {
     
     public func run() {
         // Create a session configuration
-        let configuration = ARWorldTrackingSessionConfiguration()
-        configuration.planeDetection = .horizontal
+        let configuration = ARWorldTrackingConfiguration()
         
         if orientToTrueNorth {
             configuration.worldAlignment = .gravityAndHeading
@@ -184,7 +190,7 @@ public class SceneLocationView: ARSCNView, ARSCNViewDelegate {
     }
     
     ///Adds a scene location estimate based on current time, camera position and location from location manager
-    fileprivate func addSceneLocationEstimate(location: CLLocation) {
+    public func addSceneLocationEstimate(location: CLLocation) {
         if let position = currentScenePosition() {
             let sceneLocationEstimate = SceneLocationEstimate(location: location, position: position)
             self.sceneLocationEstimates.append(sceneLocationEstimate)
@@ -233,7 +239,7 @@ public class SceneLocationView: ARSCNView, ARSCNViewDelegate {
     
     public func currentLocation() -> CLLocation? {
         if locationEstimateMethod == .coreLocationDataOnly {
-            return locationManager.currentLocation
+            return locationProvider?.currentLocation
         }
         
         guard let bestEstimate = self.bestLocationEstimate(),
@@ -448,7 +454,7 @@ public class SceneLocationView: ARSCNView, ARSCNViewDelegate {
         if !didFetchInitialLocation {
             //Current frame and current location are required for this to be successful
             if session.currentFrame != nil,
-                let currentLocation = self.locationManager.currentLocation {
+                let currentLocation = locationProvider?.currentLocation {
                 didFetchInitialLocation = true
                 
                 self.addSceneLocationEstimate(location: currentLocation)
@@ -474,8 +480,6 @@ public class SceneLocationView: ARSCNView, ARSCNViewDelegate {
             print("camera did change tracking state: limited, insufficient features")
         case .limited(.excessiveMotion):
             print("camera did change tracking state: limited, excessive motion")
-        case .limited(.none):
-            print("camera did change tracking state: limited, no reason")
         case .limited(.initializing):
             print("camera did change tracking state: limited, initializing")
         case .normal:
@@ -487,12 +491,13 @@ public class SceneLocationView: ARSCNView, ARSCNViewDelegate {
 }
 
 //MARK: LocationManager
-extension SceneLocationView: LocationManagerDelegate {
-    func locationManagerDidUpdateLocation(_ locationManager: LocationManager, location: CLLocation) {
-        addSceneLocationEstimate(location: location)
-    }
-    
-    func locationManagerDidUpdateHeading(_ locationManager: LocationManager, heading: CLLocationDirection, accuracy: CLLocationAccuracy) {
-        
-    }
-}
+//extension SceneLocationView: LocationManagerDelegate {
+//    func locationManagerDidUpdateLocation(_ locationManager: LocationManager, location: CLLocation) {
+//        addSceneLocationEstimate(location: location)
+//    }
+//
+//    func locationManagerDidUpdateHeading(_ locationManager: LocationManager, heading: CLLocationDirection, accuracy: CLLocationAccuracy) {
+//
+//    }
+//}
+
