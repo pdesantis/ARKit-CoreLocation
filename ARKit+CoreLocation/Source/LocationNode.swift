@@ -72,14 +72,13 @@ open class LocationAnnotationNode: LocationNode {
         self.image = image
         
         let width = image.size.width / 100
-        let plane = SCNPlane(width: width, height: image.size.height / 100)
+        let height = image.size.height / 100
+        let plane = SCNPlane(width: width, height: height)
         plane.firstMaterial!.diffuse.contents = image
         plane.firstMaterial!.lightingModel = .constant
         
         annotationNode = SCNNode()
         annotationNode.geometry = plane
-        
-        annotationNode.position.x = Float(width / 2)
         
         super.init(location: location)
         
